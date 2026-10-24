@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ハッシュ計算</title>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body data-root="..">
+  <main>
+    <div class="page-head">
+      <h2>ハッシュ計算</h2>
+      <p>テキストやファイルのハッシュ値・チェックサムをブラウザ内で計算します。ファイルは外部に送信されません。</p>
+    </div>
+
+    <form class="card" id="hs-form" onsubmit="return false">
+      <h3>設定</h3>
+      <div class="field">
+        <span class="label">アルゴリズム</span>
+        <div class="row" id="hs-algos"></div>
+      </div>
+      <div class="fields" style="margin-top:12px">
+        <div class="field">
+          <label for="hs-format">出力形式</label>
+          <select id="hs-format" data-persist="format">
+            <option value="hex">16進 (小文字)</option>
+            <option value="HEX">16進 (大文字)</option>
+            <option value="base64">Base64</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: span 2">
+          <label for="hs-expected">照合する値 (任意)</label>
+          <input type="text" id="hs-expected" class="mono" placeholder="期待するハッシュ値を貼り付けると一致を判定します">
+        </div>
+      </div>
+      <details class="adv" style="margin-top:12px" id="hs-hmac-box">
+        <summary>HMAC (鍵付きハッシュ)</summary>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="hs-hmac" data-persist="hmac"> HMAC で計算する</label>
+          <select id="hs-hmac-format" data-persist="hmacFormat" aria-label="鍵の形式">
+            <option value="text">鍵: テキスト (UTF-8)</option>
+            <option value="hex">鍵: 16進</option>
+            <option value="base64">鍵: Base64</option>
+          </select>
+          <input type="password" id="hs-hmac-key" class="mono" placeholder="HMAC キー (保存されません)" style="flex:1; min-width:200px" autocomplete="off">
+        </div>
+      </details>
+    </form>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>テキスト</h3>
+        <div class="row" style="margin-bottom:8px">
+          <select id="hs-text-format" data-persist="textFormat" form="hs-form" aria-label="入力形式">
+            <option value="utf8">入力: テキスト (UTF-8)</option>
+            <option value="hex">入力: 16進バイト列</option>
+            <option value="base64">入力: Base64</option>
+          </select>
+          <select id="hs-newline" data-persist="newline" form="hs-form" aria-label="改行コード">
+            <option value="lf">改行: LF</option>
+            <option value="crlf">改行: CRLF</option>
+          </select>
+          <span class="hint" id="hs-text-size">0 バイト</span>
+        </div>
+        <textarea id="hs-text" class="mono" rows="7" placeholder="ここに入力すると自動で計算します"></textarea>
+      </div>
+      <div class="card">
+        <h3>ファイル</h3>
+        <label class="dropzone" id="hs-drop">
+          <strong>ファイルをドロップ</strong>
+          <span>またはクリックして選択 (複数可)</span>
+          <input type="file" id="hs-file" multiple hidden>
+        </label>
+        <div class="row" style="margin-top:10px">
+          <button type="button" class="btn btn-sm" id="hs-recalc" disabled>再計算</button>
+          <button type="button" class="btn btn-sm btn-danger" id="hs-cancel" disabled>中止</button>
+          <span class="hint">SHA 系はファイル全体をメモリに読み込みます。MD5/CRC32 のみなら巨大ファイルも分割処理します。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>計算結果 <span class="spacer"></span>
+        <button type="button" class="btn btn-sm" id="hs-copy-sum" disabled title="sha256sum 互換の形式でコピー">checksum形式でコピー</button>
+        <button type="button" class="btn btn-sm" id="hs-dl-csv" disabled>CSV</button>
+        <button type="button" class="btn btn-sm" id="hs-clear" disabled>クリア</button>
+      </h3>
+      <div id="hs-match"></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>対象</th><th>サイズ</th><th>アルゴリズム</th><th>値</th><th></th></tr></thead>
+          <tbody id="hs-results"><tr><td colspan="5" class="empty">テキストを入力するかファイルを選択してください</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/js/yaml.js"></script>
+  <script src="../assets/js/core.js"></script>
+  <script src="../assets/js/shell.js"></script>
+  <script src="../assets/js/lib/digest.js"></script>
+  <script src="hash.js"></script>
+</body>
+</html>

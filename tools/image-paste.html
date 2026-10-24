@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>画像貼付け→ファイル</title>
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    .img-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .img-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+    .img-thumb {
+      height: 180px; display: grid; place-items: center; overflow: hidden;
+      background-color: var(--surface-2);
+      background-image: linear-gradient(45deg, var(--surface-3) 25%, transparent 25%), linear-gradient(-45deg, var(--surface-3) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--surface-3) 75%), linear-gradient(-45deg, transparent 75%, var(--surface-3) 75%);
+      background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    }
+    .img-thumb img { max-width: 100%; max-height: 180px; object-fit: contain; }
+    .img-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+    .img-body input[type="text"] { width: 100%; font-family: var(--mono); font-size: 12px; }
+    .img-meta { color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .img-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .paste-zone { min-height: 170px; }
+    kbd { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); color: var(--text); }
+  </style>
+</head>
+<body data-root="..">
+  <main>
+    <div class="page-head">
+      <h2>画像貼付け→ファイル</h2>
+      <p>スクリーンショット等をこのページで <kbd>Ctrl</kbd>+<kbd>V</kbd> (Mac は <kbd>⌘</kbd>+<kbd>V</kbd>) すると、指定した形式の画像ファイルとして保存できます。画像は外部に送信されません。</p>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>画像の入力</h3>
+        <label class="dropzone paste-zone" id="ip-drop" tabindex="0">
+          <strong>ここに貼り付け (<kbd>Ctrl</kbd>+<kbd>V</kbd>) / ドロップ</strong>
+          <span>またはクリックしてファイルを選択 (複数可)</span>
+          <input type="file" id="ip-file" accept="image/*" multiple hidden>
+        </label>
+        <div class="row" style="margin-top:10px">
+          <button type="button" class="btn btn-sm" id="ip-clipboard">📋 クリップボードから読込</button>
+          <span class="hint">ページ内のどこで貼り付けても追加されます</span>
+        </div>
+      </div>
+
+      <form class="card" id="ip-form" onsubmit="return false">
+        <h3>出力設定</h3>
+        <div class="fields">
+          <div class="field">
+            <label for="ip-format">形式</label>
+            <select id="ip-format" data-persist="format">
+              <option value="png">PNG</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+              <option value="bmp">BMP</option>
+              <option value="ico">ICO (アイコン, 最大256px)</option>
+            </select>
+          </div>
+          <div class="field" id="ip-quality-box">
+            <label for="ip-quality">品質 <span class="tag" id="ip-quality-label">90</span></label>
+            <input type="range" id="ip-quality" min="10" max="100" value="90" data-persist="quality">
+          </div>
+          <div class="field" id="ip-bg-box">
+            <label for="ip-bg">透過部分の背景色</label>
+            <input type="color" id="ip-bg" value="#ffffff" data-persist="bg" style="height:34px; width:100%">
+          </div>
+          <div class="field">
+            <label for="ip-resize">サイズ変更</label>
+            <select id="ip-resize" data-persist="resize">
+              <option value="none">変更しない</option>
+              <option value="fit">最大サイズに収める</option>
+              <option value="scale">倍率 (%)</option>
+            </select>
+          </div>
+          <div class="field" data-resize="fit">
+            <label for="ip-max-w">最大幅 (px)</label>
+            <input type="number" id="ip-max-w" min="1" value="1920" data-persist="maxW">
+          </div>
+          <div class="field" data-resize="fit">
+            <label for="ip-max-h">最大高さ (px)</label>
+            <input type="number" id="ip-max-h" min="1" value="1080" data-persist="maxH">
+          </div>
+          <div class="field" data-resize="scale">
+            <label for="ip-scale">倍率 (%)</label>
+            <input type="number" id="ip-scale" min="1" max="800" value="50" data-persist="scale">
+          </div>
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="ip-name">ファイル名テンプレート</label>
+            <input type="text" id="ip-name" class="mono" value="image_{date}" data-persist="name">
+            <span class="hint">{date}=日時 {n}=連番 {name}=元ファイル名 {w}/{h}=出力サイズ。拡張子は自動付与</span>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>画像一覧 <span class="tag" id="ip-count">0</span><span class="spacer"></span>
+        <button type="button" class="btn btn-sm btn-primary" id="ip-dl-all" disabled>すべて保存</button>
+        <button type="button" class="btn btn-sm" id="ip-clear" disabled>クリア</button>
+      </h3>
+      <div id="ip-list" class="img-list"></div>
+      <div id="ip-empty" class="empty">まだ画像がありません。スクリーンショットを撮ってこのページに貼り付けてください。</div>
+    </div>
+  </main>
+
+  <script src="../assets/js/yaml.js"></script>
+  <script src="../assets/js/core.js"></script>
+  <script src="../assets/js/shell.js"></script>
+  <script src="../assets/js/lib/digest.js"></script>
+  <script src="../assets/js/lib/zip.js"></script>
+  <script src="../assets/js/lib/image.js"></script>
+  <script src="image-paste.js"></script>
+</body>
+</html>

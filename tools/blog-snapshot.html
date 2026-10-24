@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog Snapshot</title>
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    .bs-table td { vertical-align: middle; }
+    .bs-table .bs-title { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .bs-table .bs-url { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+    .bs-table tr.is-selected td { background: var(--primary-soft); }
+    .bs-table tr { cursor: pointer; }
+    .bs-actions { display: flex; gap: 4px; justify-content: flex-end; white-space: nowrap; }
+    .bs-preview { max-height: 75vh; overflow: auto; padding: 4px 4px 4px 0; }
+    .bs-raw { width: 100%; min-height: 60vh; }
+    .bs-export { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bs-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body data-root="..">
+  <main>
+    <div class="page-head">
+      <h2>Blog Snapshot</h2>
+      <p>複数の URL を <a href="https://jina.ai/reader" target="_blank" rel="noopener">Jina Reader</a> でビューポートを指定して Markdown として取得し、保存用の Markdown / HTML / PDF / ZIP に変換します。</p>
+    </div>
+
+    <div class="grid grid-2">
+      <form class="card" id="bs-form" onsubmit="return false">
+        <h3>URL リスト <span class="tag" id="bs-url-count">0 件</span></h3>
+        <textarea id="bs-urls" class="mono" rows="9" data-persist="urls" spellcheck="false"
+          placeholder="1 行に 1 URL を入力 (# で始まる行はコメント)&#10;https://example.com/blog/post-1&#10;https://example.com/blog/post-2"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button type="submit" class="btn btn-primary" id="bs-run">📝 取得開始</button>
+          <button type="button" class="btn btn-danger" id="bs-cancel" hidden>中止</button>
+          <button type="button" class="btn" id="bs-retry" disabled>失敗分を再取得</button>
+          <span class="spacer"></span>
+          <label class="check hint"><input type="checkbox" id="bs-append" data-persist="append"> 既存の結果に追加</label>
+        </div>
+      </form>
+
+      <form class="card" id="bs-options" onsubmit="return false">
+        <h3>取得オプション</h3>
+        <div class="fields">
+          <div class="field">
+            <label for="bs-preset">ビューポート</label>
+            <select id="bs-preset" data-persist="preset"></select>
+          </div>
+          <div class="field">
+            <label for="bs-w">幅 (px)</label>
+            <input type="number" id="bs-w" min="200" max="3840" value="1280" data-persist="w">
+          </div>
+          <div class="field">
+            <label for="bs-h">高さ (px)</label>
+            <input type="number" id="bs-h" min="200" max="4320" value="800" data-persist="h">
+          </div>
+          <div class="field">
+            <label for="bs-images">画像</label>
+            <select id="bs-images" data-persist="images">
+              <option value="all">本文に残す</option>
+              <option value="alt">代替テキストのみ</option>
+              <option value="none">除去する</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bs-concurrency">同時取得数</label>
+            <select id="bs-concurrency" data-persist="concurrency">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bs-interval">リクエスト間隔 (ms)</label>
+            <input type="number" id="bs-interval" min="0" max="60000" step="100" value="1000" data-persist="interval">
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label class="check"><input type="checkbox" id="bs-shot" data-persist="shot"> ビューポートのスクリーンショットも取得</label>
+          <label class="check"><input type="checkbox" id="bs-frontmatter" checked data-persist="frontmatter"> Front Matter を付ける</label>
+        </div>
+        <details class="adv" style="margin-top:10px">
+          <summary>詳細オプション</summary>
+          <div class="fields">
+            <div class="field">
+              <label for="bs-target">本文の要素 (CSS セレクタ)</label>
+              <input type="text" id="bs-target" class="mono" placeholder="article, main" data-persist="target">
+            </div>
+            <div class="field">
+              <label for="bs-remove">除去する要素</label>
+              <input type="text" id="bs-remove" class="mono" placeholder="nav, footer, .ads" data-persist="remove">
+            </div>
+            <div class="field">
+              <label for="bs-wait">表示を待つ要素</label>
+              <input type="text" id="bs-wait" class="mono" placeholder="#content" data-persist="wait">
+            </div>
+            <div class="field">
+              <label for="bs-timeout">タイムアウト (秒)</label>
+              <input type="number" id="bs-timeout" min="5" max="180" value="60" data-persist="timeout">
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="check"><input type="checkbox" id="bs-links" data-persist="links"> リンク一覧を末尾に付ける</label>
+            <label class="check"><input type="checkbox" id="bs-imgsum" data-persist="imgsum"> 画像一覧を末尾に付ける</label>
+            <label class="check"><input type="checkbox" id="bs-nocache" data-persist="nocache"> キャッシュを使わない</label>
+          </div>
+        </details>
+        <details class="adv" style="margin-top:6px">
+          <summary>Jina Reader 設定 (API キー)</summary>
+          <div id="bs-jina"></div>
+        </details>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>取得結果 <span class="bs-summary" id="bs-summary"></span><span class="spacer"></span>
+        <button type="button" class="btn btn-sm" id="bs-clear" disabled>結果をクリア</button>
+      </h3>
+      <div class="table-wrap">
+        <table class="table bs-table">
+          <thead><tr><th style="width:40px">#</th><th style="width:90px">状態</th><th>タイトル / URL</th><th style="width:90px">文字数</th><th style="width:80px">時間</th><th style="width:1%"></th></tr></thead>
+          <tbody id="bs-rows"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="field">
+          <span class="label">保存 / 変換 (取得済みのページすべて)</span>
+          <div class="bs-export">
+            <button type="button" class="btn btn-primary" data-export="md">Markdown (1ファイルに結合)</button>
+            <button type="button" class="btn" data-export="zip">ZIP (ページ毎の Markdown + HTML)</button>
+            <button type="button" class="btn" data-export="html">HTML (1ファイル)</button>
+            <button type="button" class="btn" data-export="pdf">PDF (印刷)</button>
+            <button type="button" class="btn" data-export="json">JSON</button>
+          </div>
+          <span class="hint">PDF は印刷ダイアログが開くので、送信先に「PDF に保存」を選んでください。ファイル名: <input type="text" id="bs-filename" class="mono" value="blog-snapshot_{date}" data-persist="filename" form="bs-options" style="padding:2px 6px; font-size:12px; width:240px"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="bs-preview-card" hidden>
+      <h3><span id="bs-preview-title">プレビュー</span><span class="spacer"></span>
+        <div class="seg" role="radiogroup" aria-label="表示形式">
+          <label><input type="radio" name="bs-view" value="rendered" checked><span>表示</span></label>
+          <label><input type="radio" name="bs-view" value="raw"><span>Markdown</span></label>
+        </div>
+        <button type="button" class="btn btn-sm" id="bs-preview-copy">Markdown をコピー</button>
+      </h3>
+      <div class="row hint" id="bs-preview-meta" style="margin-bottom:10px"></div>
+      <div id="bs-preview" class="bs-preview md"></div>
+      <textarea id="bs-preview-raw" class="mono bs-raw" readonly hidden></textarea>
+    </div>
+  </main>
+
+  <script src="../assets/js/yaml.js"></script>
+  <script src="../assets/js/core.js"></script>
+  <script src="../assets/js/shell.js"></script>
+  <script src="../assets/js/lib/digest.js"></script>
+  <script src="../assets/js/lib/zip.js"></script>
+  <script src="../assets/js/lib/markdown.js"></script>
+  <script src="../assets/js/lib/jina.js"></script>
+  <script src="blog-snapshot.js"></script>
+</body>
+</html>

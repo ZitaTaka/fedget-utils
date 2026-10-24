@@ -1,0 +1,56 @@
+# ------------------------------------------------------------
+# Fedget Utils メニュー定義
+#
+# サイドバーとメインメニュー(トップページ)はこのファイルから生成されます。
+# - 並び順はこのファイルに書いた順番です
+# - children を入れ子にすれば何階層でも作れます
+# - href はリポジトリのルート(index.html のある場所)からの相対パス
+#
+# 項目で使えるキー:
+#   label       : 表示名 (必須)
+#   href        : リンク先 (省略するとグループ見出しになる)
+#   icon        : 絵文字などの短いアイコン
+#   description : メインメニューのカードに出す説明
+#   children    : 子項目の配列
+#   collapsed   : true ならグループを初期状態で閉じる
+#   external    : true なら新しいタブで開く
+#   hidden      : true なら表示しない
+# ------------------------------------------------------------
+title: Fedget Utils
+items:
+  - label: メインメニュー
+    icon: 🏠
+    href: index.html
+    description: 機能の一覧
+
+  - label: セキュリティ
+    icon: 🔐
+    children:
+      - label: パスワード生成
+        icon: 🔑
+        href: tools/password.html
+        description: 文字種・長さを指定して安全なパスワードを一括生成
+      - label: ハッシュ計算
+        icon: 🧮
+        href: tools/hash.html
+        description: テキスト/ファイルの MD5・SHA・CRC32・HMAC を計算して照合
+      - label: 暗号化キー生成
+        icon: 🗝️
+        href: tools/keygen.html
+        description: AES/HMAC 共通鍵、RSA/EC/Ed25519 鍵ペアを PEM・JWK で生成
+
+  - label: 変換
+    icon: 🔄
+    children:
+      - label: 画像貼付け→ファイル
+        icon: 🖼️
+        href: tools/image-paste.html
+        description: 貼り付けた画像を PNG/JPEG/WebP/BMP に変換してダウンロード
+      - label: Web Snapshot
+        icon: 📸
+        href: tools/web-snapshot.html
+        description: URL から Web サイトのスクリーンショットを取得
+      - label: Blog Snapshot
+        icon: 📝
+        href: tools/blog-snapshot.html
+        description: 複数 URL を Jina Reader で Markdown 化し、MD/HTML/PDF/ZIP で保存

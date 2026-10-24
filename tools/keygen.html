@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>暗号化キー生成</title>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body data-root="..">
+  <main>
+    <div class="page-head">
+      <h2>暗号化キー生成</h2>
+      <p>WebCrypto API でブラウザ内で鍵を生成します。生成した鍵は保存も送信もされません。ページを閉じる前に必要な鍵を保存してください。</p>
+    </div>
+
+    <div class="grid grid-2">
+      <form class="card" id="kg-random-form" onsubmit="return false">
+        <h3>🎲 ランダムキー (シークレット)</h3>
+        <p class="card-sub">API シークレット、セッション鍵、ソルトなどに使えるランダムなバイト列です。</p>
+        <div class="fields">
+          <div class="field">
+            <label for="kg-r-bits">長さ</label>
+            <select id="kg-r-bits" data-persist="bits">
+              <option value="128">128 bit (16 バイト)</option>
+              <option value="192">192 bit (24 バイト)</option>
+              <option value="256" selected>256 bit (32 バイト)</option>
+              <option value="384">384 bit (48 バイト)</option>
+              <option value="512">512 bit (64 バイト)</option>
+              <option value="custom">任意のバイト数</option>
+            </select>
+          </div>
+          <div class="field" id="kg-r-custom-box" hidden>
+            <label for="kg-r-bytes">バイト数</label>
+            <input type="number" id="kg-r-bytes" min="1" max="4096" value="32" data-persist="bytes">
+          </div>
+          <div class="field">
+            <label for="kg-r-format">形式</label>
+            <select id="kg-r-format" data-persist="format">
+              <option value="hex">16進 (小文字)</option>
+              <option value="HEX">16進 (大文字)</option>
+              <option value="base64">Base64</option>
+              <option value="base64url">Base64URL</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="kg-r-count">個数</label>
+            <input type="number" id="kg-r-count" min="1" max="1000" value="1" data-persist="count">
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn btn-primary" id="kg-r-generate">生成する</button>
+          <button type="button" class="btn btn-sm" id="kg-r-copy" disabled>すべてコピー</button>
+          <button type="button" class="btn btn-sm" id="kg-r-dl" disabled>TXT</button>
+        </div>
+        <div id="kg-r-results" class="stack" style="margin-top:14px"></div>
+      </form>
+
+      <form class="card" id="kg-key-form" onsubmit="return false">
+        <h3>🗝️ 暗号鍵 / 鍵ペア</h3>
+        <p class="card-sub">共通鍵は Raw/JWK、鍵ペアは PEM (SPKI / PKCS#8)・JWK・OpenSSH 公開鍵で出力します。</p>
+        <div class="fields">
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="kg-type">鍵の種類</label>
+            <select id="kg-type" data-persist="type">
+              <optgroup label="共通鍵">
+                <option value="AES-GCM">AES-GCM</option>
+                <option value="AES-CBC">AES-CBC</option>
+                <option value="AES-CTR">AES-CTR</option>
+                <option value="AES-KW">AES-KW (鍵ラップ)</option>
+                <option value="HMAC">HMAC</option>
+              </optgroup>
+              <optgroup label="公開鍵暗号 (鍵ペア)">
+                <option value="RSA-OAEP">RSA-OAEP (暗号化)</option>
+                <option value="RSA-PSS">RSA-PSS (署名)</option>
+                <option value="RSASSA-PKCS1-v1_5">RSASSA-PKCS1-v1_5 (署名 / JWT RS256 等)</option>
+                <option value="ECDSA">ECDSA (署名)</option>
+                <option value="ECDH">ECDH (鍵共有)</option>
+                <option value="Ed25519">Ed25519 (署名)</option>
+                <option value="X25519">X25519 (鍵共有)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field" data-for="aes">
+            <label for="kg-aes-len">鍵長</label>
+            <select id="kg-aes-len" data-persist="aesLen">
+              <option value="128">128 bit</option>
+              <option value="192">192 bit</option>
+              <option value="256" selected>256 bit</option>
+            </select>
+          </div>
+          <div class="field" data-for="rsa">
+            <label for="kg-rsa-len">鍵長</label>
+            <select id="kg-rsa-len" data-persist="rsaLen">
+              <option value="2048">2048 bit</option>
+              <option value="3072" selected>3072 bit</option>
+              <option value="4096">4096 bit</option>
+            </select>
+          </div>
+          <div class="field" data-for="ec">
+            <label for="kg-curve">曲線</label>
+            <select id="kg-curve" data-persist="curve">
+              <option value="P-256">P-256 (secp256r1)</option>
+              <option value="P-384">P-384 (secp384r1)</option>
+              <option value="P-521">P-521 (secp521r1)</option>
+            </select>
+          </div>
+          <div class="field" data-for="hash">
+            <label for="kg-hash">ハッシュ</label>
+            <select id="kg-hash" data-persist="hash">
+              <option value="SHA-256">SHA-256</option>
+              <option value="SHA-384">SHA-384</option>
+              <option value="SHA-512">SHA-512</option>
+            </select>
+          </div>
+          <div class="field" data-for="comment">
+            <label for="kg-comment">コメント (OpenSSH)</label>
+            <input type="text" id="kg-comment" placeholder="user@example" data-persist="comment">
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn btn-primary" id="kg-generate">鍵を生成する</button>
+          <button type="button" class="btn btn-sm" id="kg-dl-all" disabled>すべてダウンロード</button>
+        </div>
+        <div class="note" style="margin-top:12px">秘密鍵は暗号化されていない PEM で出力されます。取り扱いに注意し、必要に応じて <code>openssl pkcs8 -topk8</code> 等でパスフレーズ保護してください。</div>
+      </form>
+    </div>
+
+    <div class="card" id="kg-output-card" hidden>
+      <h3 id="kg-output-title">生成した鍵</h3>
+      <div id="kg-meta" class="row" style="margin-bottom:12px"></div>
+      <div id="kg-outputs" class="grid grid-2"></div>
+    </div>
+  </main>
+
+  <script src="../assets/js/yaml.js"></script>
+  <script src="../assets/js/core.js"></script>
+  <script src="../assets/js/shell.js"></script>
+  <script src="../assets/js/lib/digest.js"></script>
+  <script src="../assets/js/lib/zip.js"></script>
+  <script src="keygen.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>メインメニュー</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body data-root=".">
+  <main>
+    <section class="home-hero">
+      <h2>Fedget Utils</h2>
+      <p>ブラウザだけで動くビジネス向け変換ユーティリティ集です。入力したデータは外部 API を使う機能 (Web/Blog Snapshot) 以外、端末の外に送信されません。</p>
+    </section>
+    <div id="home-menu"><div class="empty">メニューを読み込み中…</div></div>
+  </main>
+
+  <script src="assets/js/yaml.js"></script>
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/shell.js"></script>
+  <script>
+    (function () {
+      const { el } = Fedget;
+      const container = document.getElementById('home-menu');
+
+      // メニュー (config/menu.yaml) からカード一覧を生成。階層はセクションとして表現する。
+      function card(n) {
+        return el('a', { class: 'tool-card', href: n.href, target: n.external ? '_blank' : null, rel: n.external ? 'noopener' : null },
+          el('div', { class: 'tool-card-icon', 'aria-hidden': 'true' }, n.icon || '•'),
+          el('div', null,
+            el('div', { class: 'tool-card-title' }, n.label),
+            n.description ? el('div', { class: 'tool-card-desc' }, n.description) : null));
+      }
+
+      function section(n) {
+        const sec = el('section', { class: 'home-section' }, el('h3', null, n.icon ? n.icon + ' ' : '', n.label));
+        appendNodes(sec, n.children);
+        return sec;
+      }
+
+      function appendNodes(parent, nodes) {
+        let grid = null;
+        nodes.forEach(n => {
+          if (n.active) return;             // 自分自身 (メインメニュー) は除外
+          if (n.children.length) {
+            grid = null;
+            if (n.href) {
+              grid = el('div', { class: 'tool-grid' });
+              grid.append(card(n));
+              parent.append(grid);
+              grid = null;
+            }
+            parent.append(section(n));
+          } else if (n.href) {
+            if (!grid) { grid = el('div', { class: 'tool-grid' }); parent.append(grid); }
+            grid.append(card(n));
+          }
+        });
+      }
+
+      Fedget.menu.onLoad(() => {
+        container.textContent = '';
+        appendNodes(container, Fedget.menu.nodes);
+        if (!container.children.length) container.append(el('div', { class: 'empty' }, 'メニューに機能が登録されていません'));
+      });
+    })();
+  </script>
+</body>
+</html>
